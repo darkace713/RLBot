@@ -5,7 +5,7 @@ import time
 
 p2 = pyvjoy.VJoyDevice(2)
 
-time.sleep(3)
+time.sleep(1.5)
 
 p2.data.lButtons = 1
 p2.update()

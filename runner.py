@@ -2,12 +2,25 @@ from ctypes import *
 from ctypes.wintypes import *
 from multiprocessing import Process, Array, Queue
 
+#My personal imports
+import sys #using for sys.stdout.write() atm
+sys.path.insert(0, "./Agents")
+
+#Bot's required imports
 import time
 import realTimeDisplay
 import ReadWriteMem
 import PlayHelper
 import array
+
+#Import p1's agent
 import AlwaysTowardsBallAgent
+BotP1 = AlwaysTowardsBallAgent
+
+#Import p2's agent
+import TestAgent001
+BotP2 = TestAgent001
+
 
 OpenProcess = windll.kernel32.OpenProcess
 CloseHandle = windll.kernel32.CloseHandle
@@ -90,12 +103,12 @@ def runAgent(inputs, scoring, agent, q):
 			
 if __name__ == '__main__':
 
-	time.sleep(3) # Sleep 3 second before starting to give me time to set things up
+	time.sleep(1.5) # Sleep before starting to give me time to set things up
 
 	inputs = Array('f', [0.0 for x in range(38)])
 	scoring = Array('f', [0.0 for x in range(12)])
-	agent1 = AlwaysTowardsBallAgent.agent("blue")
-	agent2 = AlwaysTowardsBallAgent.agent("orange")
+	agent1 = BotP1.agent("blue")
+	agent2 = BotP2.agent("orange")
 	q1 = Queue(1)
 	q2 = Queue(1)
 	
