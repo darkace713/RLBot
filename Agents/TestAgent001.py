@@ -1,4 +1,5 @@
-import math
+from enum import Enum
+import math, time
 
 '''
 Description: TBD
@@ -8,6 +9,13 @@ Description: TBD
 # Contact Email:
 # Can this bot's code be shared publicly: No
 # Can non-tournment gameplay of this bot be displayed publicly (Default: No):
+
+class Status(Enum):
+	STAT_DUMB = 0
+	STAT_FLIP_FRONT_0 = 10
+	STAT_FLIP_FRONT_1 = 11
+	STAT_FLIP_FRONT_2 = 12
+	STAT_FLIP_FRONT_3 = 13
 
 ''' Input table
 input[0][0] | Blue Boost | Amount of boost blue has [0-100]
@@ -63,9 +71,22 @@ input[1][10] | Orange Saves | Saves by Orange
 input[1][11] | Orange Shots | Shots by Orange
 '''
 
+#Roll - rotating about axis pointing out of the nose
+#YJoy - tilting nose up/down
+#XJoy - Turning nose left/right
+status = Status.STAT_DUMB #dummy enum to know nothing special is happening
+JOY_ZERO = 16383 #Center joystick for "no input"
+XJOY_LEFT = 0
+XJOY_RIGHT = 32767
+YJOY_UP = 0
+YJOY_DOWN = 32767
+
+out_vector = [16383, 16383, 32767, 0, 0, 0, 0]
+XJoy = JOY_ZERO
+YJoy = JOY_ZERO
 
 class agent:
-	#turn = 16383 #Joystick X pos 0=left
+	
 	
 	def __init__(self, team): #Constructor
 		self.team = team
@@ -73,8 +94,55 @@ class agent:
 	def get_bot_name(self):
 		# This is the name that will be displayed on screen in the real time display!
 		return "TestAgent001"
-
+	
+	def Reset_inputs(self):
+		global XJoy, YJoy, out_vector, status
+		
+		XJoy = 16383 #center of joystick (no turning)
+		YJoy = 16383 #cemter pf joystick (no tilting)
+		out_vector = [XJoy, YJoy, 32767, 0, 0, 0, 0]
+		return
+	
+	#Used to turn the car left/right
+	def UpdateXJoy(self, angle_to_ball, player_direction):
+		global XJoy, YJoy, out_vector, status
+		
+		if (angle_to_ball > player_direction):
+			out_vector[0] = 0
+		else:
+			out_vector[0] = 32767
+		return out_vector
+		
+	#Used to frontflip
+	def FrontFlip(self):
+		global XJoy, YJoy, out_vector, status
+		
+		#YJoy down + jump, YJoy down + jump again, wait til something?
+		if (status == Status.STAT_FLIP_FRONT_0):
+			#print("FrontFlip: " + str(status))
+			out_vector = [JOY_ZERO, YJOY_UP, 32767, 0, 1, 0, 0] #Tilt down and jump
+			status = Status.STAT_FLIP_FRONT_1 #Set next state
+		elif (status == Status.STAT_FLIP_FRONT_1):
+			#print("FrontFlip: " + str(status))
+			out_vector = [JOY_ZERO, YJOY_UP, 32767, 0, 0, 0, 0] #Tilt down and release jump
+			status = Status.STAT_FLIP_FRONT_2 #Set next state
+		elif (status == Status.STAT_FLIP_FRONT_2):
+			#print("FrontFlip: " + str(status))
+			out_vector = [JOY_ZERO, YJOY_UP, 32767, 0, 1, 0, 0] #Tilt down and jump again
+			status = Status.STAT_FLIP_FRONT_3 #Set next state
+		elif (status == Status.STAT_FLIP_FRONT_3): #Front flip complete, release buttons
+			#print("FrontFlip: " + str(status))
+			out_vector = [JOY_ZERO, JOY_ZERO, 32767, 0, 0, 0, 0]
+			status = Status.STAT_DUMB #Set next state
+		return out_vector
+	
 	def get_output_vector(self, input):
+		global XJoy, YJoy, out_vector, status
+		#print ("status: " + str(status))
+		#time.sleep(0.25)
+		#Initialize bot inputs (so if one is not updated it is released/centered)
+		self.Reset_inputs()
+		
 		#Get ball info
 		ball_x = input[0][7] #Ball x position
 		ball_y = input[0][6] #Ball y position
@@ -83,9 +151,6 @@ class agent:
 		ball_vy = input[0][32] #Ball Y Velocity
 		ball_vz = input[0][33] #Ball Z Velocity
 		
-		#Zeroize bot inputs (TODO make a function) ####################
-		turn = 16383
-
 		#Get bots info
 		if (self.team == "blue"):
 			player_x = input[0][5] #Blue X Position
@@ -107,6 +172,9 @@ class agent:
 			player_x = input[0][18] #Orange X Position
 			player_y = input[0][17]	#Orange Y Position
 			player_z = input[0][3] #Orange Z Position
+			player_vx = input[0][34] #Orange X Velocity
+			player_vy = input[0][35] #Orange Y Velocity
+			player_vz = input[0][36] #Orange Z Velocity
 			player_rot1 = input[0][19]
 			player_rot2 = input[0][20]
 			player_rot3 = input[0][21]
@@ -120,24 +188,37 @@ class agent:
 
 		
 		# Need to handle atan2(0,0) case, aka straight up or down, eventually
-		player_front_direction_in_radians = math.atan2(player_rot1, player_rot4)
-		relative_angle_to_ball_in_radians = math.atan2((ball_x - player_x), (ball_z - player_z))
+		player_direction = math.atan2(player_rot1, player_rot4)
+		angle_to_ball = math.atan2((ball_x - player_x), (ball_z - player_z))
 
 		#TEMP make bot front flip into ball
-		ball_dist = ((player_x - ball_x)**2 + (player_y - ball_y)**2 + (player_z - ball_z)**2)**0.5
+		ball_dist = ( ((player_x - ball_x)**2) + ((player_y - ball_y)**2) + ((player_z - ball_z)**2) )**0.5
+		#print("Ball dist: " + str(ball_dist))
+		#time.sleep(0.05)
 		
-		if (not (abs(player_front_direction_in_radians - relative_angle_to_ball_in_radians) < math.pi)):
+		if (not (abs(player_direction - angle_to_ball) < math.pi)):
 			# Add 2pi to negative values
-			if (player_front_direction_in_radians < 0):
-				player_front_direction_in_radians += 2 * math.pi
-			if (relative_angle_to_ball_in_radians < 0):
-				relative_angle_to_ball_in_radians += 2 * math.pi
-
-		if (relative_angle_to_ball_in_radians > player_front_direction_in_radians):
-			turn = 0
+			if (player_direction < 0):
+				player_direction += 2 * math.pi
+			if (angle_to_ball < 0):
+				angle_to_ball += 2 * math.pi
+				
+		#determine next action
+		if ( (ball_dist < 10) and (status == Status.STAT_DUMB) ): #do front flip if near ball
+			#print("BEGING THE FRONTENING!!!")
+			status = Status.STAT_FLIP_FRONT_0
+			
+		if (status == Status.STAT_DUMB):
+			out_vector = self.UpdateXJoy(angle_to_ball, player_direction)
 		else:
-			turn = 32767
+			self.FrontFlip()
 			
 		#LJoyX, LJoyY, FWDAccel, BCKAccel, JMP1|0, BST1|0, DRFT1|0
-		#0L 32767R, 0B 32767F, 32676FullSpeed
-		return [turn, 16383, 32767, 0, 2, 0, 0]
+		#0L 32767R, 0U 32767D, 32676FullSpeed
+		#return [XJoy, YJoy, 32767, 0, 0, 1, 0]
+		return out_vector
+
+		
+		
+		
+		

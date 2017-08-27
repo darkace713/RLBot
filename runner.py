@@ -103,7 +103,7 @@ def runAgent(inputs, scoring, agent, q):
 			
 if __name__ == '__main__':
 
-	time.sleep(1.5) # Sleep before starting to give me time to set things up
+	time.sleep(2) # Sleep before starting to give me time to set things up
 
 	inputs = Array('f', [0.0 for x in range(38)])
 	scoring = Array('f', [0.0 for x in range(12)])
