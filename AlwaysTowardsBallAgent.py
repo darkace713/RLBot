@@ -54,5 +54,6 @@ class agent:
 		else:
 			turn = 32767
 		
-		return [turn, 16383, 32767, 0, 2, 0, 0]
+		return [turn, 16383, 32767, 0, 0, 0, 0]
+		#return [turn, 16383, 0, 0, 2, 0, 0]
 	
