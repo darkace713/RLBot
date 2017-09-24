@@ -20,10 +20,17 @@ class Status(Enum):
 	STAT_FLIP_FRONT_3 = 13
 
 ##TODO make a queue for input commands
-class CommandQueue():
-	i = 7
+class CommandQueue:
+	class Command:
+		def __init__(self):
+			self.something = 0
+
 	def __init__(self):
-		self.soemthing = 0
+		self.commands = []
+		self.numCommands = 0
+
+	def add(self, command):
+		self.commands.append(command)
 
 
 
@@ -125,7 +132,7 @@ class agent:
 			self.out_vector[0] = JOY_RIGHT
 		return self.out_vector
 		
-	#Used to frontflip
+	#Outputs to perform a front flip
 	def FrontFlip(self):
 		#YJoy down + jump, YJoy down + jump again, wait til something?
 		if (self.status == Status.STAT_FLIP_FRONT_0):
@@ -145,7 +152,7 @@ class agent:
 			self.status = Status.STAT_DUMB #Set next state
 		return self.out_vector
 
-	#Essentially main for the agent
+	#Main function for the agent
 	def get_output_vector(self, input):
 		#Initialize bot inputs (so if one is not updated it is released/centered)
 		self.Reset_inputs()
@@ -154,14 +161,14 @@ class agent:
 		self.ballPos = [input[0][7], input[0][6], input[0][2]]
 		self.ballVel = [input[0][31], input[0][32], input[0][33]]
 		
-		#Get bots info
+		#Get the bot's info
 		if (self.team == "blue"):
 			self.pos = [input[0][5], input[0][4], input[0][1]]
 			self.vel = [input[0][28], input[0][29], input[0][30]]
 			self.rot = [[input[0][8], input[0][9], input[0][10]],
 						[input[0][11], input[0][12], input[0][13]],
 						[input[0][14], input[0][15], input[0][16]]]
-		else:
+		else: #Orang team
 			self.pos = [input[0][18], input[0][17], input[0][3]]
 			self.vel = [input[0][34], input[0][35], input[0][36]]
 			self.rot = [[input[0][19], input[0][20], input[0][21]],
